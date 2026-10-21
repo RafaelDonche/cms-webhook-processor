@@ -4,24 +4,30 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Models\Content;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
-class DatabaseSeeder extends Seeder
+final class DatabaseSeeder extends Seeder
 {
     use WithoutModelEvents;
 
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $admin = User::factory()->admin()->create([
+            'name' => 'Demo Admin',
+            'email' => 'admin@example.com',
+        ]);
 
         User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+            'name' => 'Demo User',
+            'email' => 'user@example.com',
         ]);
+
+        Content::factory()->count(10)->published()->create();
+        Content::factory()->count(3)->unpublished()->create();
+        Content::factory()->count(2)->published()->disabled($admin)->create();
+        Content::factory()->count(2)->deleted()->create();
     }
 }

@@ -23,6 +23,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Sanctum Routes
+    |--------------------------------------------------------------------------
+    |
+    | The CSRF cookie route only serves first-party SPAs authenticated through
+    | session cookies. API tokens are the only authentication method in use.
+    |
+    */
+
+    'routes' => false,
+
+    /*
+    |--------------------------------------------------------------------------
     | Sanctum Guards
     |--------------------------------------------------------------------------
     |

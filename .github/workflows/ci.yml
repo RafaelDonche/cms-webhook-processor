@@ -8,7 +8,7 @@ on:
 jobs:
   quality:
     name: Quality and tests (PHP ${{ matrix.php }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     strategy:
       fail-fast: false
@@ -37,7 +37,7 @@ jobs:
       DB_PASSWORD: postgres
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -46,7 +46,7 @@ jobs:
           coverage: none
 
       - name: Cache Composer dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.composer/cache/files
           key: composer-${{ matrix.php }}-${{ hashFiles('composer.lock') }}

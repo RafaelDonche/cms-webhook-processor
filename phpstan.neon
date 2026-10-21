@@ -10,3 +10,4 @@ parameters:
         - database
         - routes
         - tests
+    parseModelCastsMethod: true

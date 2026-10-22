@@ -94,6 +94,15 @@ final class Content extends Model
     }
 
     /**
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function disabled(Builder $query, bool $disabled = true): void
+    {
+        $query->whereNull('disabled_at', not: $disabled);
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

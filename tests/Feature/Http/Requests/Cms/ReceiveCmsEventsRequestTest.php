@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Http\Requests\Cms;
 
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Arr;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Concerns\CapturesCmsLog;
@@ -14,6 +15,7 @@ final class ReceiveCmsEventsRequestTest extends TestCase
 {
     use CapturesCmsLog;
     use InteractsWithCmsWebhook;
+    use LazilyRefreshDatabase;
 
     protected function setUp(): void
     {
@@ -144,6 +146,8 @@ final class ReceiveCmsEventsRequestTest extends TestCase
         ])
             ->assertUnprocessable()
             ->assertOnlyJsonValidationErrors(['events.1.version']);
+
+        $this->assertDatabaseEmpty('contents');
     }
 
     public function test_reports_the_invalid_fields_of_every_event(): void

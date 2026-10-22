@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Http\Middleware;
 
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Monolog\Level;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Concerns\CapturesCmsLog;
@@ -14,6 +15,7 @@ final class AuthenticateCmsWebhookTest extends TestCase
 {
     use CapturesCmsLog;
     use InteractsWithCmsWebhook;
+    use LazilyRefreshDatabase;
 
     private const string CHALLENGE = 'Basic realm="cms-webhook", charset="UTF-8"';
 

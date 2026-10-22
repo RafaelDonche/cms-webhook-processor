@@ -1,0 +1,16 @@
+[
+  {
+    "type": "publish",
+    "id": "article-4",
+    "version": 1,
+    "timestamp": "2026-01-05T10:00:00Z",
+    "payload": { "title": "Valid event" }
+  },
+  {
+    "type": "publish",
+    "id": "article-5",
+    "version": "2",
+    "timestamp": "2026-01-05T10:00:00Z",
+    "payload": "not an object"
+  }
+]

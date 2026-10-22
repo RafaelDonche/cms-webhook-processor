@@ -1,0 +1,551 @@
+openapi: 3.1.0
+
+info:
+  title: CMS Webhook Processor
+  version: 1.0.0
+  summary: Receives CMS content events and serves the synchronized content to API consumers.
+  description: |
+    Two independent surfaces with separate credentials:
+
+    - `POST /cms/events` receives event batches from the CMS (HTTP Basic).
+    - `/api/v1/contents` serves the synchronized content to users and administrators (bearer token).
+
+    Every response carries an `X-Request-Id` header. Errors are always JSON.
+    See `docs/api.md` for the event precedence rules and the visibility matrix.
+  license:
+    name: MIT
+    identifier: MIT
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+
+tags:
+  - name: CMS webhook
+    description: Event delivery from the CMS.
+  - name: Contents
+    description: Read access to the synchronized content.
+  - name: Local overrides
+    description: Administrator-only local disable status.
+
+paths:
+  /cms/events:
+    post:
+      tags: [CMS webhook]
+      operationId: receiveCmsEvents
+      summary: Deliver a batch of content events
+      description: |
+        Validates the whole batch, then applies it atomically in the order received. Precedence is
+        decided only by `version`: an event is applied when the content is unknown or the version is
+        greater than the stored one, and ignored as `duplicate` (equal version) or `stale` (lower
+        version) otherwise. The response is sent after the transaction commits.
+      security:
+        - cmsBasic: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              minItems: 1
+              maxItems: 100
+              items:
+                $ref: '#/components/schemas/CmsEvent'
+            examples:
+              mixedBatch:
+                summary: One event of each type
+                externalValue: examples/batch.json
+              outOfOrder:
+                summary: An older version delivered after a newer one
+                externalValue: examples/out-of-order.json
+              unpublishUnseenVersion:
+                summary: Unpublish of a version that was never published
+                externalValue: examples/unpublish-unseen-version.json
+              deleteThenOlder:
+                summary: An older publish after a delete
+                externalValue: examples/delete-then-older.json
+      responses:
+        '200':
+          description: Batch applied. Contains one result per received event, in order.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/BatchResult'
+              example:
+                data:
+                  batch_id: 01a163ae-1d12-7286-b74f-77fdcdf17b39
+                  received: 2
+                  applied: 1
+                  ignored: 1
+                  events:
+                    - id: article-1
+                      type: publish
+                      version: 5
+                      outcome: applied
+                    - id: article-1
+                      type: publish
+                      version: 3
+                      outcome: ignored
+                      reason: stale
+        '401':
+          description: Missing or invalid credentials, or credentials not configured on the server.
+          headers:
+            WWW-Authenticate:
+              description: Basic authentication challenge.
+              schema:
+                type: string
+                const: Basic realm="cms-webhook", charset="UTF-8"
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: Invalid CMS webhook credentials.
+        '422':
+          description: The batch is invalid. Nothing was applied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+              example:
+                message: The events.1.version field must be an integer. (and 1 more error)
+                errors:
+                  events.1.version:
+                    - The events.1.version field must be an integer.
+                  events.1.payload:
+                    - The events.1.payload field must be a JSON object.
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          description: The batch failed while being applied. The transaction was rolled back; retry the delivery.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [message, batch_id]
+                properties:
+                  message:
+                    type: string
+                  batch_id:
+                    type: string
+                    format: uuid
+              example:
+                message: The batch could not be processed and no events were applied. Retry the delivery.
+                batch_id: 01a163ae-1d12-7286-b74f-77fdcdf17b39
+
+  /api/v1/contents:
+    get:
+      tags: [Contents]
+      operationId: listContents
+      summary: List visible contents
+      description: |
+        Users receive published content that is not locally disabled. Administrators receive published
+        and unpublished content, including locally disabled content. Deleted content is never listed.
+        Results are ordered by arrival and paginated with a cursor.
+      security:
+        - consumerToken: []
+      parameters:
+        - name: per_page
+          in: query
+          description: Page size.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 15
+        - name: cursor
+          in: query
+          description: Opaque cursor from `meta.next_cursor` or `meta.prev_cursor`.
+          schema:
+            type: string
+        - name: filter[status]
+          in: query
+          description: Administrators only; rejected with 422 when sent by a user.
+          schema:
+            type: string
+            enum: [published, unpublished]
+        - name: filter[disabled]
+          in: query
+          description: Administrators only; rejected with 422 when sent by a user.
+          schema:
+            type: string
+            enum: ['true', 'false', '1', '0']
+      responses:
+        '200':
+          description: A page of contents.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentPage'
+              example:
+                data:
+                  - id: content-123
+                    version: 2
+                    status: published
+                    payload:
+                      title: Example content
+                      description: Some content
+                    source_updated_at: '2026-01-01T10:00:00Z'
+                links:
+                  first: null
+                  last: null
+                  prev: null
+                  next: http://localhost:8000/api/v1/contents?per_page=1&cursor=eyJpZCI6MSwiX3BvaW50c1RvTmV4dEl0ZW1zIjp0cnVlfQ
+                meta:
+                  path: http://localhost:8000/api/v1/contents
+                  per_page: 1
+                  next_cursor: eyJpZCI6MSwiX3BvaW50c1RvTmV4dEl0ZW1zIjp0cnVlfQ
+                  prev_cursor: null
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '422':
+          description: Invalid pagination parameters or filters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+              example:
+                message: The filter field is prohibited.
+                errors:
+                  filter:
+                    - The filter field is prohibited.
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/contents/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ContentId'
+    get:
+      tags: [Contents]
+      operationId: showContent
+      summary: Retrieve one content
+      security:
+        - consumerToken: []
+      responses:
+        '200':
+          description: The content.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/contents/{id}/disabled:
+    parameters:
+      - $ref: '#/components/parameters/ContentId'
+    put:
+      tags: [Local overrides]
+      operationId: disableContent
+      summary: Locally disable content (administrators)
+      description: |
+        Hides the content from users without modifying CMS data. Later CMS events do not clear it.
+        Idempotent: an existing override keeps its original `disabled_at`.
+      security:
+        - consumerToken: []
+      responses:
+        '200':
+          description: The content, now disabled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentEnvelope'
+              example:
+                data:
+                  id: content-123
+                  version: 2
+                  status: published
+                  payload:
+                    title: Example content
+                    description: Some content
+                  source_updated_at: '2026-01-01T10:00:00Z'
+                  disabled: true
+                  disabled_at: '2026-10-22T12:55:32Z'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    delete:
+      tags: [Local overrides]
+      operationId: enableContent
+      summary: Re-enable locally disabled content (administrators)
+      description: Idempotent.
+      security:
+        - consumerToken: []
+      responses:
+        '200':
+          description: The content, now enabled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentEnvelope'
+              example:
+                data:
+                  id: content-123
+                  version: 2
+                  status: published
+                  payload:
+                    title: Example content
+                    description: Some content
+                  source_updated_at: '2026-01-01T10:00:00Z'
+                  disabled: false
+                  disabled_at: null
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+components:
+  securitySchemes:
+    cmsBasic:
+      type: http
+      scheme: basic
+      description: Credentials from `CMS_WEBHOOK_USERNAME` and `CMS_WEBHOOK_PASSWORD`. Valid only for `/cms/events`.
+    consumerToken:
+      type: http
+      scheme: bearer
+      description: Personal access token issued with `php artisan consumers:token`. Valid only for `/api/v1`.
+
+  parameters:
+    ContentId:
+      name: id
+      in: path
+      required: true
+      description: CMS identifier of the content.
+      schema:
+        type: string
+        maxLength: 255
+      example: content-123
+
+  headers:
+    RequestId:
+      description: Identifier of the request, also present in every log entry it produced.
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    CmsEvent:
+      type: object
+      required: [type, id, version, timestamp]
+      properties:
+        type:
+          type: string
+          enum: [publish, unpublish, delete]
+        id:
+          type: string
+          minLength: 1
+          maxLength: 255
+        version:
+          type: integer
+          minimum: 1
+          description: Must be a JSON integer; strings and floats are rejected.
+        timestamp:
+          type: string
+          format: date-time
+          description: RFC 3339 date-time with a time zone. Informational only; never used for precedence.
+        payload:
+          type: object
+          additionalProperties: true
+          description: Required for `publish` and `unpublish`. Ignored for `delete`.
+      additionalProperties: true
+      if:
+        properties:
+          type:
+            enum: [publish, unpublish]
+      then:
+        required: [payload]
+
+    EventResult:
+      type: object
+      required: [id, type, version, outcome]
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [publish, unpublish, delete]
+        version:
+          type: integer
+        outcome:
+          type: string
+          enum: [applied, ignored]
+        reason:
+          type: string
+          enum: [duplicate, stale]
+          description: Present only when `outcome` is `ignored`.
+
+    BatchResult:
+      type: object
+      required: [batch_id, received, applied, ignored, events]
+      properties:
+        batch_id:
+          type: string
+          format: uuid
+          description: Same value as the `X-Request-Id` header.
+        received:
+          type: integer
+        applied:
+          type: integer
+        ignored:
+          type: integer
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventResult'
+
+    Content:
+      type: object
+      required: [id, version, status, payload, source_updated_at]
+      properties:
+        id:
+          type: string
+          description: CMS identifier.
+        version:
+          type: integer
+          description: Latest version accepted from the CMS.
+        status:
+          type: string
+          enum: [published, unpublished]
+          description: Users only ever receive `published`.
+        payload:
+          type: object
+          additionalProperties: true
+        source_updated_at:
+          type: string
+          format: date-time
+          description: Timestamp of the event that produced the current version.
+        disabled:
+          type: boolean
+          description: Administrators only.
+        disabled_at:
+          type: [string, 'null']
+          format: date-time
+          description: Administrators only.
+
+    ContentEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/Content'
+
+    ContentPage:
+      type: object
+      required: [data, links, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Content'
+        links:
+          type: object
+          properties:
+            first:
+              type: 'null'
+            last:
+              type: 'null'
+            prev:
+              type: [string, 'null']
+              format: uri
+            next:
+              type: [string, 'null']
+              format: uri
+        meta:
+          type: object
+          properties:
+            path:
+              type: string
+              format: uri
+            per_page:
+              type: integer
+            next_cursor:
+              type: [string, 'null']
+            prev_cursor:
+              type: [string, 'null']
+
+    Error:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+
+    ValidationError:
+      type: object
+      required: [message, errors]
+      properties:
+        message:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+  responses:
+    Unauthenticated:
+      description: Missing, invalid, expired or revoked token.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: Unauthenticated.
+    Forbidden:
+      description: The consumer can see the content but is not an administrator.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: This action is unauthorized.
+    NotFound:
+      description: The content does not exist, was deleted, or is not visible to the consumer.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: Resource not found.
+    TooManyRequests:
+      description: Rate limit exceeded.
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: Too Many Attempts.

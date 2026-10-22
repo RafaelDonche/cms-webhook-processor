@@ -1,0 +1,15 @@
+[
+  {
+    "type": "delete",
+    "id": "article-3",
+    "version": 5,
+    "timestamp": "2026-01-04T12:00:00Z"
+  },
+  {
+    "type": "publish",
+    "id": "article-3",
+    "version": 4,
+    "timestamp": "2026-01-04T11:00:00Z",
+    "payload": { "title": "Stale copy" }
+  }
+]

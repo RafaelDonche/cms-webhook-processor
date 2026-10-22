@@ -1,0 +1,16 @@
+[
+  {
+    "type": "publish",
+    "id": "article-1",
+    "version": 5,
+    "timestamp": "2026-01-02T09:05:00Z",
+    "payload": { "title": "Fifth revision" }
+  },
+  {
+    "type": "publish",
+    "id": "article-1",
+    "version": 3,
+    "timestamp": "2026-01-02T09:30:00Z",
+    "payload": { "title": "Third revision, delivered late" }
+  }
+]

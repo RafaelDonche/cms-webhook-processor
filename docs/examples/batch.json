@@ -1,0 +1,22 @@
+[
+  {
+    "type": "publish",
+    "id": "content-123",
+    "version": 2,
+    "timestamp": "2026-01-01T10:00:00Z",
+    "payload": { "title": "Example content", "description": "Some content" }
+  },
+  {
+    "type": "unpublish",
+    "id": "content-456",
+    "version": 4,
+    "timestamp": "2026-01-01T10:05:00Z",
+    "payload": { "title": "Updated content", "description": "New information" }
+  },
+  {
+    "type": "delete",
+    "id": "content-789",
+    "version": 5,
+    "timestamp": "2026-01-01T10:10:00Z"
+  }
+]

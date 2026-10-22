@@ -1,0 +1,16 @@
+[
+  {
+    "type": "publish",
+    "id": "article-2",
+    "version": 3,
+    "timestamp": "2026-01-03T08:00:00Z",
+    "payload": { "title": "Launch notes", "body": "Draft three" }
+  },
+  {
+    "type": "unpublish",
+    "id": "article-2",
+    "version": 4,
+    "timestamp": "2026-01-03T08:15:00Z",
+    "payload": { "title": "Launch notes", "body": "Draft four, never published" }
+  }
+]

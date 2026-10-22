@@ -19,22 +19,22 @@ final class ReceiveCmsEventsRequest extends FormRequest
 {
     public const int MAX_BATCH_SIZE = 100;
 
-    /**
-     * @var list<mixed>|null
-     */
-    private ?array $decodedEvents = null;
-
     public function authorize(): bool
     {
         return true;
     }
 
     /**
+     * Only a JSON array is decoded into PHP arrays: decoding an object such as {"0": {...}} that way would
+     * produce a list and let it pass as a batch.
+     *
      * @return array<string, mixed>
      */
     public function validationData(): array
     {
-        return ['events' => json_decode($this->getContent(), associative: true)];
+        $body = $this->decodedBody();
+
+        return ['events' => is_array($body) ? json_decode($this->getContent(), associative: true) : $body];
     }
 
     /**
@@ -42,7 +42,7 @@ final class ReceiveCmsEventsRequest extends FormRequest
      */
     public function rules(): array
     {
-        $batchRules = ['events' => ['required', 'array', 'list', 'min:1', 'max:'.self::MAX_BATCH_SIZE]];
+        $batchRules = ['events' => ['bail', 'required', 'array', 'list', 'min:1', 'max:'.self::MAX_BATCH_SIZE]];
 
         if ($this->decodedEvents() === []) {
             return $batchRules;
@@ -124,12 +124,14 @@ final class ReceiveCmsEventsRequest extends FormRequest
      */
     private function decodedEvents(): array
     {
-        if ($this->decodedEvents === null) {
-            $decoded = json_decode($this->getContent());
-            $this->decodedEvents = is_array($decoded) && array_is_list($decoded) ? $decoded : [];
-        }
+        $body = $this->decodedBody();
 
-        return $this->decodedEvents;
+        return is_array($body) && array_is_list($body) ? $body : [];
+    }
+
+    private function decodedBody(): mixed
+    {
+        return once(fn (): mixed => json_decode($this->getContent()));
     }
 
     /**

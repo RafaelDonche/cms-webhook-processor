@@ -54,6 +54,8 @@ final class ReceiveCmsEventsRequestTest extends TestCase
         $this->postRawCmsBody($body)
             ->assertUnprocessable()
             ->assertOnlyJsonValidationErrors(['events']);
+
+        $this->assertDatabaseEmpty('contents');
     }
 
     /**
@@ -63,6 +65,7 @@ final class ReceiveCmsEventsRequestTest extends TestCase
     {
         return [
             'single event object' => [(string) json_encode(self::publishEvent())],
+            'object with list-like keys' => [(string) json_encode(['0' => self::deleteEvent(['timestamp' => 'next monday'])], JSON_FORCE_OBJECT)],
             'malformed json' => ['[{"type": "publish"'],
             'json string' => ['"publish"'],
             'empty body' => [''],

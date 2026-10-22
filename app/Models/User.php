@@ -23,7 +23,7 @@ final class User extends Authenticatable
      * @var array<string, string>
      */
     protected $attributes = [
-        'role' => 'user',
+        'role' => UserRole::User->value,
     ];
 
     public function isAdmin(): bool

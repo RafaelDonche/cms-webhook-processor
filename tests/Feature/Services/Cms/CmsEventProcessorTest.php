@@ -166,6 +166,13 @@ final class CmsEventProcessorTest extends TestCase
         $this->assertSame('2026-01-01T00:00:00+00:00', $content->source_updated_at?->toAtomString());
     }
 
+    public function test_stores_a_timestamp_with_an_offset_as_the_same_instant_in_utc(): void
+    {
+        $this->process([$this->publishEvent('content-1', 1, timestamp: '2026-01-01T10:00:00+02:00')]);
+
+        $this->assertSame('2026-01-01T08:00:00+00:00', $this->content('content-1')->source_updated_at?->toAtomString());
+    }
+
     public function test_applies_the_events_of_a_batch_in_the_order_received(): void
     {
         $batch = $this->process([

@@ -11,13 +11,15 @@ use stdClass;
 
 final readonly class CmsEvent
 {
+    public CarbonImmutable $timestamp;
+
     public ?stdClass $payload;
 
     public function __construct(
         public CmsEventType $type,
         public string $externalId,
         public int $version,
-        public CarbonImmutable $timestamp,
+        CarbonImmutable $timestamp,
         ?stdClass $payload = null,
     ) {
         if ($version < 1) {
@@ -28,6 +30,7 @@ final readonly class CmsEvent
             throw new InvalidArgumentException("A {$type->value} event requires a payload.");
         }
 
+        $this->timestamp = $timestamp->utc();
         $this->payload = $type->carriesPayload() ? $payload : null;
     }
 }

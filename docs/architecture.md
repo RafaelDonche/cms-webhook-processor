@@ -187,8 +187,11 @@ for different content proceed in parallel.
 The locking strategy sits behind the `ContentLockManager` interface; `PostgresAdvisoryLockManager` is
 the only implementation and is bound in the service provider.
 
-Administrator overrides do not take these locks: they update only the override columns, and
-PostgreSQL's row lock orders the two `UPDATE`s, so neither side loses a write.
+Administrator overrides do not take these locks. They re-read the content row with
+`SELECT ... FOR UPDATE` in a short transaction, so concurrent disable and enable requests apply one
+after the other: a second disable sees the first, keeps its original `disabled_at` and is not logged
+again. Since overrides only write their own columns and event batches only write the CMS columns, the
+row lock also orders an override and a batch touching the same content without either losing a write.
 
 ## Authentication and authorization
 

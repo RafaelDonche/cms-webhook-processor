@@ -249,5 +249,5 @@ cycle: content that was disabled before the deletion comes back still disabled.
 
 Listed with their reasoning in [docs/architecture.md](docs/architecture.md#known-limitations). The most
 relevant: webhook latency depends on the database because processing is synchronous; tombstones are
-never purged; only the latest state of each content is kept; `jsonb` does not preserve key order or
-integers beyond 64 bits in payloads; token management is CLI-only.
+never purged; only the latest state of each content is kept; `jsonb` does not preserve the key order
+of payloads; token management is CLI-only.

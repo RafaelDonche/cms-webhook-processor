@@ -369,9 +369,10 @@ predicates, check constraints, `jsonb`, advisory locks, transaction semantics) d
   content, so no purge exists. Each tombstone is one small row without payload.
 - **Only the latest state is kept.** There is no history of versions or payloads; the logs record what
   happened to each event, but not the content.
-- **Payload fidelity.** `jsonb` normalizes the stored JSON: object keys are reordered, duplicate keys
-  keep only the last value, and integers beyond the 64-bit range lose precision when decoded by PHP.
-  Payloads are returned semantically equal to what was received, not byte-for-byte identical.
+- **Payload fidelity.** `jsonb` normalizes the stored JSON: object keys are reordered and duplicate
+  keys keep only the last value. Payloads are returned semantically equal to what was received, not
+  byte-for-byte identical.
+- **Very large integers.** Integers in a payload beyond the signed 64-bit range lose precision when decoded by PHP.
 - **Version reuse is not detected.** Two events with the same version and different content are
   treated as a duplicate; the service trusts that the CMS never reuses a version.
 - **Unauthenticated API requests are not rate limited.** Authentication runs before the per-consumer

@@ -125,6 +125,14 @@ final class ReceiveCmsEventsRequestTest extends TestCase
             ->assertOnlyJsonValidationErrors(['events.0.version']);
     }
 
+    public function test_accepts_timestamps_with_nanoseconds_and_lowercase_separators(): void
+    {
+        $this->postCmsEvents([
+            self::publishEvent(['id' => 'content-1', 'timestamp' => '2026-01-01T10:00:00.123456789Z']),
+            self::publishEvent(['id' => 'content-2', 'timestamp' => '2026-01-01t10:00:00z']),
+        ])->assertOk();
+    }
+
     public function test_accepts_an_empty_object_as_payload(): void
     {
         $this->postCmsEvents([self::publishEvent(['payload' => (object) []])])->assertOk();

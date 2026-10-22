@@ -10,7 +10,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
 
 final class Rfc3339Timestamp implements ValidationRule
 {
-    private const string PATTERN = '/^(?<date>\d{4}-\d{2}-\d{2})T(?<time>\d{2}:\d{2}:\d{2})(\.\d{1,6})?(Z|[+-]([01]\d|2[0-3]):[0-5]\d)$/';
+    private const string PATTERN = '/^(?<date>\d{4}-\d{2}-\d{2})[Tt](?<time>\d{2}:\d{2}:\d{2})(\.\d+)?([Zz]|[+-]([01]\d|2[0-3]):[0-5]\d)$/';
 
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {

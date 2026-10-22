@@ -28,6 +28,8 @@ final class Rfc3339TimestampTest extends TestCase
             'negative offset' => ['2026-01-01T10:00:00-03:00'],
             'milliseconds' => ['2026-01-01T10:00:00.123Z'],
             'microseconds' => ['2026-01-01T10:00:00.123456+05:30'],
+            'nanoseconds' => ['2026-01-01T10:00:00.123456789Z'],
+            'lowercase separators' => ['2026-01-01t10:00:00z'],
             'leap day' => ['2028-02-29T00:00:00Z'],
         ];
     }

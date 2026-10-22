@@ -83,7 +83,7 @@ All settings are read from environment variables (`.env`). Besides the standard 
 | `CMS_WEBHOOK_PASSWORD` | empty | HTTP Basic password the CMS must send. While either credential is empty, the webhook rejects every request. |
 | `CMS_WEBHOOK_RATE_LIMIT_PER_MINUTE` | `120` | Webhook deliveries accepted per minute from one IP address. |
 | `API_RATE_LIMIT_PER_MINUTE` | `60` | Consumer API requests accepted per minute from one consumer. |
-| `API_TOKEN_TTL_DAYS` | `90` | Lifetime of newly issued consumer tokens when no explicit lifetime is given. |
+| `API_TOKEN_TTL_DAYS` | `90` | Lifetime in days (1 to 365) of newly issued consumer tokens when no explicit lifetime is given. |
 | `CORS_ALLOWED_ORIGINS` | empty | Comma-separated origins allowed to call the consumer API from a browser (e.g. `https://admin.example.com`). Empty means no browser origin is allowed; server-to-server clients are unaffected. |
 | `LOG_LEVEL` | `debug` | Minimum level written to the logs. |
 | `LOG_DAILY_DAYS` | `14` | Days of CMS log files kept (`storage/logs/cms-YYYY-MM-DD.log`). |

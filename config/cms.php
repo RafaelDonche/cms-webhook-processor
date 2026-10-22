@@ -16,8 +16,8 @@ return [
     */
 
     'webhook' => [
-        'username' => env('CMS_WEBHOOK_USERNAME', ''),
-        'password' => env('CMS_WEBHOOK_PASSWORD', ''),
+        'username' => (string) env('CMS_WEBHOOK_USERNAME', ''),
+        'password' => (string) env('CMS_WEBHOOK_PASSWORD', ''),
         'rate_limit_per_minute' => (int) env('CMS_WEBHOOK_RATE_LIMIT_PER_MINUTE', 120),
     ],
 

@@ -17,8 +17,14 @@ abstract class TestCase extends BaseTestCase
         $app = parent::createApplication();
 
         $this->guardAgainstNonTestDatabase($app);
+        $this->silenceDedicatedLogChannels($app);
 
         return $app;
+    }
+
+    private function silenceDedicatedLogChannels(Application $app): void
+    {
+        $app['config']->set('logging.channels.cms', $app['config']->get('logging.channels.null'));
     }
 
     private function guardAgainstNonTestDatabase(Application $app): void

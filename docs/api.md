@@ -22,6 +22,8 @@ A machine-readable description of both surfaces is available in [`openapi.yaml`]
 - Timestamps in responses are UTC in RFC 3339 / ISO 8601 Zulu form (`2026-01-01T10:00:00Z`).
 - Rate-limited responses include `X-RateLimit-Limit` and `X-RateLimit-Remaining`; a `429` also
   includes `Retry-After` (seconds).
+- Browsers may call the consumer API only from the origins listed in `CORS_ALLOWED_ORIGINS` (none by
+  default). The CMS webhook never accepts cross-origin browser requests.
 
 ### Error format
 

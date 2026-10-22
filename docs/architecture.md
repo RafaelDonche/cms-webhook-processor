@@ -233,6 +233,17 @@ on the other surface. A test asserts that every registered route requires one of
 authentication middlewares, which also guards against framework or package routes (such as health
 checks or storage routes) being exposed by accident.
 
+### Browser access (CORS)
+
+No browser origin may call the API unless it is listed in `CORS_ALLOWED_ORIGINS`; the list is empty
+by default. CORS only matters for scripts running in a browser, and since tokens are never attached
+automatically by browsers, an open policy would not let another site act on a consumer's behalf.
+It would, however, make it easy to ship a token inside a public front-end, where any visitor can read
+it. Keeping CORS closed unless an origin is explicitly trusted makes that a deliberate choice. Allowed
+origins get only the methods and headers the API uses (`GET`, `PUT`, `DELETE`; `Accept`,
+`Authorization`, `Content-Type`), can read the `X-Request-Id` and rate-limit headers, and never
+receive credentials support. The CMS webhook is outside the CORS paths entirely.
+
 ### Authorization
 
 Visibility is defined once, in `Content::visibleTo(User)`:
@@ -346,6 +357,7 @@ predicates, check constraints, `jsonb`, advisory locks, transaction semantics) d
 | `payload` as `jsonb` handled as an object | Associative array; normalized columns | Content is arbitrary and opaque; keeps `{}` distinct from `[]`. |
 | Sanctum tokens issued from the CLI | Login endpoint; OAuth2 | Stateless, standard in Laravel, no password surface; OAuth2 would be heavy for two fixed roles. |
 | `404` for content outside the caller's visibility, `403` only for visible content | `403` everywhere | Never reveals that hidden content exists. |
+| CORS closed unless origins are configured | Framework default allowing every origin | Least privilege; avoids encouraging tokens in public front-ends. |
 | Cursor pagination | Offset pagination | Stable under concurrent writes, no `COUNT(*)`; no page numbers. |
 | Exception message never logged on batch failure | Log the message | PostgreSQL messages include the failing row; loses the original stack trace. |
 

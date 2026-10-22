@@ -390,5 +390,6 @@ predicates, check constraints, `jsonb`, advisory locks, transaction semantics) d
   `disabled_by`.
 - **Cursor contents.** The cursor is opaque to clients but is a base64-encoded internal id, not an
   encrypted value. It reveals arrival order, which is not sensitive here.
+- **Identifiers containing `/`.** Such content is stored, but the consumer API cannot address it by id.
 - **Single database.** Advisory locks rely on all writers sharing one PostgreSQL primary; this holds
   for this deployment model, which uses no read replicas.
